@@ -38,10 +38,12 @@ export default class DragAndDropModule {
       event.stopPropagation();
       event.preventDefault();
 
+      const quillIndex = getQuillIndexAtCoordinates(event.clientX, event.clientY);
+
       // call onDrop for each dropped file
       Promise.all(file_infos.map(file_info => {
         return Promise
-          .resolve((onDrop || nullReturner)(file_info.file, {tag: file_info.tag, attr: file_info.attr}))
+          .resolve((onDrop || nullReturner)(file_info.file, {embedType: file_info.embedType}))
           .then(ret => ({on_drop_ret_val: ret, file_info}));
       }))
 
@@ -52,14 +54,14 @@ export default class DragAndDropModule {
           // means that we shouldn't do anything with this file
           return;
         }
-        const {tag, attr} = file_info;
+        const {embedType} = file_info;
         // if ret is null, either onDrop() returned null (or a null-
         // bearing promise), or onDrop isn't defined, so just use the
-        // file's base64 as the value for tag[draggable.attr]
+        // file's base64 as the value
         //
         // if ret is non-false and non-null, it means onDrop returned
         // something (or promised something) that isn't null or false.
-        // Assume it's what we should use for tag[draggable.attr]
+        // Assume it's what we should use for value
         let data;
         if (on_drop_ret_val === null)
           data = getFileDataUrl(file_info.file);
@@ -68,30 +70,40 @@ export default class DragAndDropModule {
 
         return Promise
           .resolve(data)
-          .then(ret => ({data: ret, tag, attr}));
+          .then(ret => ({value: ret, embedType}));
       })))
       .then(datas => datas.forEach(file_info => {
-        // loop through each file_info and attach them to the editor
+        const quill = _private.get('quill');
 
+        // loop through each file_info and attach them to the editor
         // file_info is undefined if onDrop returned false
         if (file_info) {
-          const {data, tag, attr} = file_info;
-          // create an element from the given `tag` (e.g. 'img')
-          const new_element = document.createElement(tag);
-
-          // set `attr` to `data` (e.g. img.src = "data:image/png;base64..")
-          new_element.setAttribute(attr, data);
-
-          // attach the tag to the quill container
-          // TODO: maybe a better way to determine *exactly* where to append
-          // the node? Currently, we're guessing based on event.target, but
-          // that only gets us the node itself, not the position within the
-          // node (i.e., if the node is a text node, maybe it's possible to
-          // split the text node on the point where the user to dropped)
-          node.appendChild(new_element);
+          const {value, embedType} = file_info;
+          quill.insertEmbed(quillIndex, embedType, value, 'user');
         }
       }));
     });
+  }
+
+  getQuillIndexAtCoordinates(x, y) {
+    const quill = _private.get('quill');
+    let textNode;
+    let offset;
+    if (document.caretRangeFromPoint) {
+      const range = document.caretRangeFromPoint(x, y);
+      textNode = range.startContainer;
+      offset = range.startOffset;
+    } else if (document.caretPositionFromPoint) {
+      const caretPosition = document.caretPositionFromPoint(x, y);
+      textNode = caretPosition.offsetNode;
+      offset = caretPosition.offset;
+    } else {
+      // return last index
+      return quill.scroll.length;
+    }
+
+    const blot = Quill.find(textNode);
+    return blot.offset(quill.scroll) + offset;
   }
 
   destroy() {

@@ -105,15 +105,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	      event.stopPropagation();
 	      event.preventDefault();
 
+	      var quillIndex = getQuillIndexAtCoordinates(event.clientX, event.clientY);
+
 	      // call onDrop for each dropped file
 	      Promise.all(file_infos.map(function (file_info) {
-	        return Promise.resolve((onDrop || _utils.nullReturner)(file_info.file, { tag: file_info.tag, attr: file_info.attr })).then(function (ret) {
+	        return Promise.resolve((onDrop || _utils.nullReturner)(file_info.file, { embedType: file_info.embedType })).then(function (ret) {
 	          return { on_drop_ret_val: ret, file_info: file_info };
 	        });
-	      })
+	      }))
 
 	      // map return vals of onDrop/nullReturner to file datas
-	      ).then(function (datas) {
+	      .then(function (datas) {
 	        return Promise.all(datas.map(function (_ref) {
 	          var on_drop_ret_val = _ref.on_drop_ret_val,
 	              file_info = _ref.file_info;
@@ -123,46 +125,33 @@ return /******/ (function(modules) { // webpackBootstrap
 	            // means that we shouldn't do anything with this file
 	            return;
 	          }
-	          var tag = file_info.tag,
-	              attr = file_info.attr;
+	          var embedType = file_info.embedType;
 	          // if ret is null, either onDrop() returned null (or a null-
 	          // bearing promise), or onDrop isn't defined, so just use the
-	          // file's base64 as the value for tag[draggable.attr]
+	          // file's base64 as the value
 	          //
 	          // if ret is non-false and non-null, it means onDrop returned
 	          // something (or promised something) that isn't null or false.
-	          // Assume it's what we should use for tag[draggable.attr]
+	          // Assume it's what we should use for value
 
 	          var data = void 0;
 	          if (on_drop_ret_val === null) data = (0, _utils.getFileDataUrl)(file_info.file);else data = on_drop_ret_val;
 
 	          return Promise.resolve(data).then(function (ret) {
-	            return { data: ret, tag: tag, attr: attr };
+	            return { value: ret, embedType: embedType };
 	          });
 	        }));
 	      }).then(function (datas) {
 	        return datas.forEach(function (file_info) {
-	          // loop through each file_info and attach them to the editor
+	          var quill = _private.get('quill');
 
+	          // loop through each file_info and attach them to the editor
 	          // file_info is undefined if onDrop returned false
 	          if (file_info) {
-	            var data = file_info.data,
-	                tag = file_info.tag,
-	                attr = file_info.attr;
-	            // create an element from the given `tag` (e.g. 'img')
+	            var value = file_info.value,
+	                embedType = file_info.embedType;
 
-	            var new_element = document.createElement(tag);
-
-	            // set `attr` to `data` (e.g. img.src = "data:image/png;base64..")
-	            new_element.setAttribute(attr, data);
-
-	            // attach the tag to the quill container
-	            // TODO: maybe a better way to determine *exactly* where to append
-	            // the node? Currently, we're guessing based on event.target, but
-	            // that only gets us the node itself, not the position within the
-	            // node (i.e., if the node is a text node, maybe it's possible to
-	            // split the text node on the point where the user to dropped)
-	            node.appendChild(new_element);
+	            quill.insertEmbed(quillIndex, embedType, value, 'user');
 	          }
 	        });
 	      });
@@ -170,6 +159,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 
 	  _createClass(DragAndDropModule, [{
+	    key: 'getQuillIndexAtCoordinates',
+	    value: function getQuillIndexAtCoordinates(x, y) {
+	      var quill = _private.get('quill');
+	      var textNode = void 0;
+	      var offset = void 0;
+	      if (document.caretRangeFromPoint) {
+	        var range = document.caretRangeFromPoint(x, y);
+	        textNode = range.startContainer;
+	        offset = range.startOffset;
+	      } else if (document.caretPositionFromPoint) {
+	        var caretPosition = document.caretPositionFromPoint(x, y);
+	        textNode = caretPosition.offsetNode;
+	        offset = caretPosition.offset;
+	      } else {
+	        // return last index
+	        return quill.scroll.length;
+	      }
+
+	      var blot = _quill2.default.find(textNode);
+	      return blot.offset(quill.scroll) + offset;
+	    }
+	  }, {
 	    key: 'destroy',
 	    value: function destroy() {
 	      // remove listeners

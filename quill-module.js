@@ -262,13 +262,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.getFileDataUrl = getFileDataUrl;
 	exports.nullReturner = nullReturner;
 	function convertDraggable(draggable) {
-	  if (draggable.content_type_pattern && draggable.tag && draggable.attr) {
+	  if (draggable.content_type_pattern && draggable.embedType) {
 	    var ret = Object.assign({}, draggable);
 	    ret.content_type_regex = new RegExp(draggable.content_type_pattern);
 	    delete ret.content_type_pattern;
 	    return ret;
 	  } else {
-	    var e = new Error("draggables should have content_type_pattern, tag and attr keys");
+	    var e = new Error("draggables should have content_type_pattern and embedType keys");
 	    e.invalid_draggable = draggable;
 	    throw e;
 	  }
@@ -282,7 +282,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var draggable = draggables.find(function (d) {
 	      return d.content_type_regex.test(file.type);
 	    });
-	    draggable && ret.push({ file: file, tag: draggable.tag, attr: draggable.attr });
+	    draggable && ret.push({ file: file, embedType: draggable.embedType });
 	  };
 
 	  for (var i = 0; i < file_list.length; i++) {

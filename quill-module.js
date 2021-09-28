@@ -105,7 +105,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      event.stopPropagation();
 	      event.preventDefault();
 
-	      var quillIndex = getQuillIndexAtCoordinates(event.clientX, event.clientY);
+	      var quillIndex = _this.getQuillIndexAtCoordinates(event.clientX, event.clientY);
 
 	      // call onDrop for each dropped file
 	      Promise.all(file_infos.map(function (file_info) {
@@ -161,7 +161,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _createClass(DragAndDropModule, [{
 	    key: 'getQuillIndexAtCoordinates',
 	    value: function getQuillIndexAtCoordinates(x, y) {
-	      var quill = _private.get('quill');
+	      var quill = private_data.get(this).get('quill');
 	      var textNode = void 0;
 	      var offset = void 0;
 	      if (document.caretRangeFromPoint) {

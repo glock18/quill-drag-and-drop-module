@@ -38,7 +38,7 @@ export default class DragAndDropModule {
       event.stopPropagation();
       event.preventDefault();
 
-      const quillIndex = getQuillIndexAtCoordinates(event.clientX, event.clientY);
+      const quillIndex = this.getQuillIndexAtCoordinates(event.clientX, event.clientY);
 
       // call onDrop for each dropped file
       Promise.all(file_infos.map(file_info => {
@@ -86,7 +86,7 @@ export default class DragAndDropModule {
   }
 
   getQuillIndexAtCoordinates(x, y) {
-    const quill = _private.get('quill');
+    const quill = private_data.get(this).get('quill');
     let textNode;
     let offset;
     if (document.caretRangeFromPoint) {
